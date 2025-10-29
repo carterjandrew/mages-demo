@@ -1,213 +1,294 @@
-import { useEffect, useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import './app.css'
+import Button from './components/button'
 
-type GameMove = "Reload" | "Attack 1" | "Attack 2" | "Heal" | "Reflect"
+type MoveHandler = (p: Player) => void
 
-interface Player {
+type MoveDisabledHandler = (p: Player) => boolean
+
+type SpellName = "Reload" | "Fireball" | "BigFireBall" | "Heal" | "Reflect"
+
+type LiveSpell = {
+		player: number,
+		name: SpellName,
+		hp: number
+}
+
+type Move = {
+		cooldown: number,
+		triggerKey: string,
+		handler: MoveHandler,
+		disabledHandler: MoveDisabledHandler,
+		lastTriggered: number
+}
+
+export interface Player {
+		num: number
 		hp: number
 		mana: number
-		currentMove: GameMove
-		ready: boolean
+		shieldActivated: number
 }
 
-type GameState = "P1" | "P2" | "Result" | "End"
-
-function isAttack(move: GameMove) {
-		return move == "Attack 1" || move == "Attack 2"
-}
-
-function isReflect(move: GameMove) {
-		return move == "Reflect"
-}
-
-type MoveFunc = (p1: Player, p2: Player) => [Player, Player]
-
-type MoveFunctions = Record<GameMove, MoveFunc>
-
-const moveFunctions: MoveFunctions = {
-		"Reload": (p1, p2) => {
-				return [{...p1, mana: p1.mana + 1}, p2]
-		},
-		"Heal": (p1, p2) => {
-				if(isAttack(p2.currentMove)){
-						return [p1, p2]
-				}
-				if(p1.hp > 4) {
-						return [p1, p2]
-				}
-				return [{...p1, hp: p1.hp + 1}, p2]
-		},
-		"Attack 1": (p1, p2) => {
-				p1.mana -= 1
-				if(isAttack(p2.currentMove) || isReflect(p2.currentMove)){
-						return [p1, p2]
-				}
-				return [p1, {...p2, hp: p2.hp - 1}]
-		},
-		"Attack 2": (p1, p2) => {
-				p1.mana -= 2
-				if(isAttack(p2.currentMove) || isReflect(p2.currentMove)){
-						return [p1, p2]
-				}
-				return [p1, {...p2, hp: p2.hp - 2}]
-		},
-		"Reflect": (p1, p2) => {
-				p1.mana -= 1
-				if(isAttack(p2.currentMove)){
-						const amount = p2.currentMove == "Attack 1" ? 1 : 2
-						return [p1, {...p2, hp: p2.hp - amount}]
-				}
-				return [p1, p2]
-		},
-}
-
-function applyMove(p1: Player, p2: Player) {
-		console.log(p1);
-		console.log(p2);
-		[p1, p2] = moveFunctions[p1.currentMove](p1, p2);
-		[p2, p1] = moveFunctions[p2.currentMove](p2, p1);
-		return [p1, p2];
-}
-
-type MovePossible = (p: Player) => Record<GameMove, boolean>
-
-const movePossible: MovePossible = (p) => {
-		return {
-				"Reload": true,
-				"Attack 1": p.mana >= 1,
-				"Attack 2": p.mana >= 2,
-				"Reflect": p.mana >= 1,
-				"Heal": p.hp < 4
-		}
-}
+const p1Keys = ["1", "q", "a", "z", "x"]
+const p2Keys = ["-", "p", "l", ",", "m"]
 
 export function App() {
 		const [player1, setPlayer1] = useState<Player>({
 				hp: 3,
 				mana: 0,
-				currentMove: "Reload",
-				ready: false
+				shieldActivated: -10000,
+				num: 1
 		})
-		const p1Moves = useMemo(() => movePossible(player1), [player1])
 		const [player2, setPlayer2] = useState<Player>({
 				hp: 3,
 				mana: 0,
-				currentMove: "Reload",
-				ready: false
+				shieldActivated: -10000,
+				num: 2
 		})
-		const p2Moves = useMemo(() => movePossible(player2), [player2])
-		const [gameState, setGameState] = useState<GameState>("P1")
-
-		function applyInnerMoves(){
-				const [p1, p2] = applyMove(player1, player2)
-				setPlayer1({
-						...p1,
-						ready: false
-				})
-				setPlayer2({
-						...p2,
-						ready: false
-				})
-				if(p1.hp <= 0 || p2.hp <= 0){
-						setGameState("End")
-				} else {
-						setGameState("Result")
+		const [liveMoves1, setLiveMoves1] = useState<Array<LiveSpell>>([])
+		const [liveMoves2, setLiveMoves2] = useState<Array<LiveSpell>>([])
+		const moveHanders: Record<SpellName, MoveHandler> = {
+				"Heal": (p) => {
+						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+						setPlayer({...p, hp: p.hp + 1})
+				},
+				"Reload": (p) => {
+						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+						setPlayer({...p, mana: p.mana + 1})
+				},
+				"Reflect": (p) => {
+						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+						setPlayer({
+								...p,
+								shieldActivated: performance.now(),
+								mana: p.mana - 1
+						})
+				},
+				"Fireball": (p) => {
+						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+						setPlayer({...p, mana: p.mana - 1})
+						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+						setLiveMoves(lm => {
+								return [...lm, {
+										hp: 1,
+										name: "Fireball",
+										player: p.num
+								}]
+						})
+				},
+				"BigFireBall": (p) => {
+						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+						setPlayer({...p, mana: p.mana - 2})
+						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+						setLiveMoves(lm => {
+								return [...lm, {
+										hp: 2,
+										name: "BigFireBall",
+										player: p.num
+								}]
+						})
 				}
+		}
+
+		const moveDisabledHandlers: Record<SpellName, MoveDisabledHandler> = {
+				"Heal": (p) => {
+						return true
+				},
+				"Reload": (p) => {
+						return true
+				},
+				"Reflect": (p) => {
+						return p.mana > 0
+				},
+				"Fireball": (p) => {
+						return p.mana > 0
+				},
+				"BigFireBall": (p) => {
+						return p.mana > 1
+				},
+		}
+
+		const spellCooldowns: Record<SpellName, number> = {
+				"Heal": 			10,
+				"BigFireBall": 		40,
+				"Fireball": 		20,
+				"Reflect": 			30,
+				"Reload": 			10,
+		}
+
+		const p1Moves = useRef<Record<SpellName, Move> | null>(null)
+		if (!p1Moves.current) {
+		  p1Moves.current = {} as Record<SpellName, Move>
+		  ;(Object.keys(moveDisabledHandlers) as SpellName[]).forEach((key, index) => {
+		    p1Moves.current![key] = {
+		      triggerKey: p1Keys[index],
+		      cooldown: spellCooldowns[key],
+		      disabledHandler: moveDisabledHandlers[key],
+		      handler: moveHanders[key],
+		      lastTriggered: 0,
+		    }
+		  })
+		}
+		const keyToSpell1: Record<string, SpellName> = {}
+		Object.entries(p1Moves.current).forEach(([key, value], _) => {
+				keyToSpell1[value.triggerKey] = key as SpellName
+		})
+
+		const [p1Recharge, setP1Recharge] = useState<Record<SpellName, number>>({
+				"Reload": 0,
+				"Heal": 0,
+				"Reflect": 0,
+				"Fireball": 0,
+				"BigFireBall": 0,
+		})
+		
+		const [p1Disabled, setP1Disabled] = useState<Record<SpellName, boolean>>({
+				"Reload": true,
+				"Heal": true,
+				"Reflect": true,
+				"Fireball": true,
+				"BigFireBall": true,
+		})
+
+
+		const p2Moves = useRef<Record<SpellName, Move> | null>(null)
+		if (!p2Moves.current) {
+		  p2Moves.current = {} as Record<SpellName, Move>
+		  ;(Object.keys(moveDisabledHandlers) as SpellName[]).forEach((key, index) => {
+		    p2Moves.current![key] = {
+		      triggerKey: p2Keys[index],
+		      cooldown: spellCooldowns[key],
+		      disabledHandler: moveDisabledHandlers[key],
+		      handler: moveHanders[key],
+		      lastTriggered: 0,
+		    }
+		  })
+		}
+
+		const keyToSpell2: Record<string, SpellName> = {}
+		Object.entries(p2Moves.current).forEach(([key, value], _) => {
+				keyToSpell2[value.triggerKey] = key as SpellName
+		})
+
+		const [p2Recharge, setP2Recharge] = useState<Record<SpellName, number>>({
+				"Reload": 0,
+				"Heal": 0,
+				"Reflect": 0,
+				"Fireball": 0,
+				"BigFireBall": 0,
+		})
+		
+		const [p2Disabled, setP2Disabled] = useState<Record<SpellName, boolean>>({
+				"Reload": true,
+				"Heal": true,
+				"Reflect": true,
+				"Fireball": true,
+				"BigFireBall": true,
+		})
+
+		function objectMap(object, mapFn) {
+		  return Object.keys(object).reduce(function(result, key) {
+			result[key] = mapFn(key, object[key])
+			return result
+		  }, {})
+		}
+
+		const requestRef = useRef<number>()
+
+		const player1Ref = useRef(player1)
+		const player2Ref = useRef(player2)
+
+		useEffect(() => { player1Ref.current = player1 }, [player1])
+		useEffect(() => { player2Ref.current = player2 }, [player2])
+
+		const animate = time => {
+				setP1Recharge(
+						objectMap(p1Recharge, (k, v) => {
+								const move = p1Moves.current[k as SpellName]
+								return (time - move.lastTriggered) / move.cooldown
+						})
+				)
+				setP2Recharge(
+						objectMap(p2Recharge, (k, v) => {
+								const move = p2Moves.current[k as SpellName]
+								return (time - move.lastTriggered) / move.cooldown
+						})
+				)
+				setP1Disabled(
+						objectMap(p1Disabled, (k, v) => {
+								const move = p1Moves.current[k as SpellName]
+								const recharge = (time - move.lastTriggered) / move.cooldown
+								return recharge < 97 || !move.disabledHandler(player1Ref.current)
+						})
+				)
+				setP2Disabled(
+						objectMap(p2Disabled, (k, v) => {
+								const move = p2Moves.current[k as SpellName]
+								const recharge = (time - move.lastTriggered) / move.cooldown
+								return recharge < 97 || !move.disabledHandler(player2Ref.current)
+						})
+				)
+				requestRef.current = requestAnimationFrame(animate)
 		}
 
 		useEffect(() => {
-				if(player1.ready && player2.ready){
-						applyInnerMoves()
-				}
-		}, [player1, player2])
+				requestRef.current = requestAnimationFrame(animate)
+				return () => cancelAnimationFrame(requestRef.current!)
+		}, [])
 
-		if(gameState == "P1") return (
-				<div style={{display: "flex", flexDirection: "column"}}>
-						<h1> Player 1 </h1>
-						<div style={{display: "flex", flexDirection: "row"}}>
-								<a>HP: {player1.hp}</a>
-						</div>
-						<div style={{display: "flex", flexDirection: "row"}}>
-								<a>Mana: {player1.mana}</a>
-						</div>
-						<h2> Possible Moves: </h2>
-						{
-								Object.entries(p1Moves).map(([k, v]) => (
-										<button
-												disabled={!v}
-												onClick = {() => {
-														setPlayer1({
-																...player1,
-																currentMove: k,
-																ready: true
-														})
-														setGameState("P2")
-												}}
-										>{k}</button>
-								))
+		useEffect(() => {
+				const handleKeyUp = (event: KeyboardEvent) => {
+						const p1Key = keyToSpell1[event.key]
+						const p2Key = keyToSpell2[event.key]
+						if(p1Key){
+								if(p1Disabled[p1Key]) return;
+								p1Moves.current[p1Key].handler(player1)
+								p1Moves.current[p1Key].lastTriggered = performance.now()
 						}
-				</div>
-		)
-		if(gameState == "P2") return (
-				<div style={{display: "flex", flexDirection: "column"}}>
-						<h1> Player 2 </h1>
-						<div style={{display: "flex", flexDirection: "row"}}>
-								<a>HP: {player2.hp}</a>
-						</div>
-						<div style={{display: "flex", flexDirection: "row"}}>
-								<a>Mana: {player2.mana}</a>
-						</div>
-						<h2> Possible Moves: </h2>
-						{
-								Object.entries(p2Moves).map(([k, v]) => (
-										<button
-												disabled={!v}
-												onClick = {() => {
-														setPlayer2({
-																...player2,
-																currentMove: k,
-																ready: true
-														})
-												}}
-										>{k}</button>
-								))
+						if(p2Key){
+								if(p2Disabled[p2Key]) return;
+								p2Moves.current[p2Key].handler(player2)
+								p2Moves.current[p2Key].lastTriggered = performance.now()
 						}
-				</div>
-		)
-		if(gameState == "Result"){
-				return (
-						<div style={{display: "flex", flexDirection: "column"}}>
-								<h1> Player 1 </h1>
-								<div style={{display: "flex", flexDirection: "row"}}>
-										<a>HP: {player1.hp}</a>
-								</div>
-								<div style={{display: "flex", flexDirection: "row"}}>
-										<a>Mana: {player1.mana}</a>
-								</div>
-								<div style={{display: "flex", flexDirection: "row"}}>
-										<a>Move Done: {player1.currentMove}</a>
-								</div>
-								<h1> Player 2 </h1>
-								<div style={{display: "flex", flexDirection: "row"}}>
-										<a>HP: {player2.hp}</a>
-								</div>
-								<div style={{display: "flex", flexDirection: "row"}}>
-										<a>Mana: {player2.mana}</a>
-								</div>
-								<div style={{display: "flex", flexDirection: "row"}}>
-										<a>Move Done: {player2.currentMove}</a>
-								</div>
-								<button
-										onClick={() => {
-												setGameState("P1")
-										}}
-								> Continue </button>
-						</div>
-				)
-		}
+				}
+				window.addEventListener("keyup", handleKeyUp)
+				return () => {
+						window.removeEventListener("keyup", handleKeyUp)
+				}
+		}, [p1Disabled, p2Disabled])
+
+
 		return (
-				<div style={{display: "flex", flexDirection: "column"}}>
-						<h1> Player {player1.hp <= 0 ? 2:1} wins </h1>
+				<div style={{
+						display: "flex",
+						flexDirection: "row",
+						width: "100vw",
+						padding: "40px",
+				}}>
+						<div style={{display: "flex", flexDirection: "column", minWidth: "20%"}}>
+								<h1> A </h1>
+								<a> HP: {player1.hp} </a>
+								<a> Mana: {player1.mana} </a>
+								{Object.entries(p1Moves.current).map(([key, value], _) => (
+										<Button
+											recharged={p1Recharge[key]}
+											disabled={p1Disabled[key]}
+										> {key} ({value.triggerKey}) </Button>
+								))}
+						</div>
+						<div style={{flex: 1}}>
+						</div>
+						<div style={{display: "flex", flexDirection: "column", minWidth: "20%"}}>
+								<h1> B </h1>
+								<a> HP: {player2.hp} </a>
+								<a> Mana: {player2.mana} </a>
+								{Object.entries(p2Moves.current).map(([key, value], _) => (
+										<Button
+											recharged={p2Recharge[key]}
+											disabled={p2Disabled[key]}
+										> {key} ({value.triggerKey}) </Button>
+								))}
+						</div>
 				</div>
 		)
 }

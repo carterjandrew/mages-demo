@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import './app.css'
 import Button from './components/button'
+import { FaHeart } from 'react-icons/fa'
+import type { FC } from 'preact/compat'
+import { MdElectricBolt } from 'react-icons/md'
 
 type MoveHandler = (p: Player) => void
 
@@ -257,16 +260,51 @@ export function App() {
 				}
 		}, [p1Disabled, p2Disabled])
 
-
 		return (
 				<div style={{
 						display: "flex",
 						flexDirection: "row",
 						width: "100vw",
+						height: "100vh",
 						padding: "40px",
 				}}>
-						<div style={{display: "flex", flexDirection: "column", minWidth: "20%"}}>
-								<h1> A </h1>
+						<div style={{display: "flex", flexDirection: "column", minWidth: "20%", height: '100%'}}>
+							<div style={{display: "flex", flexDirection: "row", gap: "5px"}} >
+							{Array.from({length: player1.mana}).map(() => (
+								<MdElectricBolt style={{
+									color: "blue",
+								}} />
+							))}
+							</div>
+							<div style={{display: "flex", flexDirection: "row", gap: "5px"}} >
+							{Array.from({length: player1.hp}).map(() => (
+								<FaHeart style={{
+									color: "red",
+								}} />
+							))}
+							</div>
+								<div style={{
+									flex: 1,
+									display: "flex",
+									justifyContent: "center",
+									alignItems: "center",
+									position: "relative"
+								}}>
+									<div style={{
+										position: "absolute",
+										width: "35vh",
+										height: "35vh",
+										borderRadius: "18vh",
+										zIndex: -1,
+										boxShadow: `0px 0px 3vh 1vh lightblue inset`
+									}} />
+									<h1
+										style={{
+											fontFamily: "Times New Roman",
+											fontSize: "30vh",
+										}}
+									> A </h1>
+								</div>
 								<a> HP: {player1.hp} </a>
 								<a> Mana: {player1.mana} </a>
 								{Object.entries(p1Moves.current).map(([key, value], _) => (
@@ -277,9 +315,45 @@ export function App() {
 								))}
 						</div>
 						<div style={{flex: 1}}>
+							<h1> Live Spells </h1>
 						</div>
 						<div style={{display: "flex", flexDirection: "column", minWidth: "20%"}}>
-								<h1> B </h1>
+							<div style={{display: "flex", flexDirection: "row", gap: "5px", justifyContent: "end"}} >
+							{Array.from({length: player2.mana}).map(() => (
+								<MdElectricBolt style={{
+									color: "blue",
+								}} />
+							))}
+							</div>
+							<div style={{display: "flex", flexDirection: "row", gap: "5px", justifyContent: "end"}} >
+							{Array.from({length: player2.hp}).map(() => (
+								<FaHeart style={{
+									color: "red",
+								}} />
+							))}
+							</div>
+								<div style={{
+									flex: 1,
+									display: "flex",
+									justifyContent: "center",
+									alignItems: "center",
+									position: "relative"
+								}}>
+									<div style={{
+										position: "absolute",
+										width: "35vh",
+										height: "35vh",
+										borderRadius: "18vh",
+										zIndex: -1,
+										boxShadow: `0px 0px 3vh 1vh lightblue inset`
+									}} />
+									<h1
+										style={{
+											fontFamily: "Times New Roman",
+											fontSize: "30vh",
+										}}
+									> B </h1>
+								</div>
 								<a> HP: {player2.hp} </a>
 								<a> Mana: {player2.mana} </a>
 								{Object.entries(p2Moves.current).map(([key, value], _) => (

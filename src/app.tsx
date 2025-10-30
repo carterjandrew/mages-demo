@@ -4,6 +4,7 @@ import Button from './components/button'
 import { FaHeart } from 'react-icons/fa'
 import type { FC } from 'preact/compat'
 import { MdElectricBolt } from 'react-icons/md'
+import Spell, { type SpellType } from './components/spell'
 
 type MoveHandler = (p: Player) => void
 
@@ -11,11 +12,8 @@ type MoveDisabledHandler = (p: Player) => boolean
 
 type SpellName = "Reload" | "Fireball" | "BigFireBall" | "Heal" | "Reflect"
 
-type LiveSpell = {
-		player: number,
-		name: SpellName,
-		hp: number
-}
+const fireBallTime = 2
+const bigFireBallTime = 3
 
 type Move = {
 		cooldown: number,
@@ -48,8 +46,34 @@ export function App() {
 				shieldActivated: -10000,
 				num: 2
 		})
-		const [liveMoves1, setLiveMoves1] = useState<Array<LiveSpell>>([])
-		const [liveMoves2, setLiveMoves2] = useState<Array<LiveSpell>>([])
+		const shieldTimeout = 1000
+		const [p1ShieldActive, setP1ShieldActive] = useState(false)
+		function activateP1Shield(){
+			setP1ShieldActive(true)
+			async function disableShield(){
+				await new Promise(r => setTimeout(r, shieldTimeout))
+				setP1ShieldActive(false)
+			}
+			disableShield()
+		}
+		const [p2ShieldActive, setP2ShieldActive] = useState(false)
+		function activateP2Shield(){
+			setP2ShieldActive(true)
+			async function disableShield(){
+				await new Promise(r => setTimeout(r, shieldTimeout))
+				setP2ShieldActive(false)
+			}
+			disableShield()
+		}
+		const [liveMoves1, setLiveMoves1] = useState<Array<SpellType>>([])
+		const [liveMoves2, setLiveMoves2] = useState<Array<SpellType>>([])
+
+		async function onFireballLand(spell: SpellType){
+			await new Promise(r => setTimeout(r, spell.airTime * 1000))
+			const setLiveMoves = spell.playerOne ? setLiveMoves1 : setLiveMoves2
+			setLiveMoves(a => a.slice(1))
+		}
+
 		const moveHanders: Record<SpellName, MoveHandler> = {
 				"Heal": (p) => {
 						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
@@ -60,36 +84,40 @@ export function App() {
 						setPlayer({...p, mana: p.mana + 1})
 				},
 				"Reflect": (p) => {
+						const activateShield = p.num == 1 ? activateP1Shield: activateP2Shield
+						activateShield()
 						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
-						setPlayer({
-								...p,
-								shieldActivated: performance.now(),
-								mana: p.mana - 1
-						})
+						setPlayer({...p, mana: p.mana - 1})
 				},
 				"Fireball": (p) => {
 						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
 						setPlayer({...p, mana: p.mana - 1})
 						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+						const fireball: SpellType = {
+								hp: 1,
+								playerOne: p.num == 1,
+								airTime: fireBallTime,
+								timeCast: performance.now()
+						}
 						setLiveMoves(lm => {
-								return [...lm, {
-										hp: 1,
-										name: "Fireball",
-										player: p.num
-								}]
+								return [...lm, fireball]
 						})
+						onFireballLand(fireball)
 				},
 				"BigFireBall": (p) => {
 						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
 						setPlayer({...p, mana: p.mana - 2})
 						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+						const fireball: SpellType = {
+								hp: 2,
+								playerOne: p.num == 1,
+								airTime: bigFireBallTime,
+								timeCast: performance.now()
+						}
 						setLiveMoves(lm => {
-								return [...lm, {
-										hp: 2,
-										name: "BigFireBall",
-										player: p.num
-								}]
+								return [...lm, fireball]
 						})
+						onFireballLand(fireball)
 				}
 		}
 
@@ -291,6 +319,7 @@ export function App() {
 									position: "relative"
 								}}>
 									<div style={{
+										display: p1ShieldActive ? "block": "none",
 										position: "absolute",
 										width: "35vh",
 										height: "35vh",
@@ -314,8 +343,21 @@ export function App() {
 										> {key} ({value.triggerKey}) </Button>
 								))}
 						</div>
-						<div style={{flex: 1}}>
-							<h1> Live Spells </h1>
+						<div style={{flex: 1, position: "relative", display: "flex", alignItems: "center"}}>
+							<div style={{
+								width: "100%",
+								height: "10px",
+								position: "absolute",
+								display: "flex",
+								alignItems: "center"
+								}}
+							>
+							{liveMoves1.map(move => (
+								<Spell
+									spell={move}
+								/>
+							))}
+							</div>
 						</div>
 						<div style={{display: "flex", flexDirection: "column", minWidth: "20%"}}>
 							<div style={{display: "flex", flexDirection: "row", gap: "5px", justifyContent: "end"}} >
@@ -340,6 +382,7 @@ export function App() {
 									position: "relative"
 								}}>
 									<div style={{
+										display: p2ShieldActive ? "block": "none",
 										position: "absolute",
 										width: "35vh",
 										height: "35vh",

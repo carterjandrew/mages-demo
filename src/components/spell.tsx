@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks"
 
 
-type SpellType = {
+export type SpellType = {
 		hp: number,
 		playerOne: boolean,
 		timeCast: number
@@ -13,7 +13,7 @@ type SpellProps = React.HTMLProps<HTMLDivElement> & {
 
 const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 		const [deltaTime, setDeltaTime] = useState(0)
-		const complete = useMemo(() => Math.floor(1000 * deltaTime / spell.airTime)/10, [deltaTime])
+		const complete = useMemo(() => Math.floor(1000 * deltaTime / (spell.airTime * 1000) )/10, [deltaTime])
 		const requestRef = useRef<number>()
 		const color = useMemo(() => {
 				switch(spell.hp) {

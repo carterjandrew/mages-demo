@@ -28,8 +28,8 @@ const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 		}
 		const color = getColor()
 		function getSize(){
-				if(spell.hp == 2) return 100
-				if(spell.hp == 1) return 60
+				if(spell.hp == 2) return 150
+				if(spell.hp == 1) return 90
 				return 60
 		}
 		const size = getSize()
@@ -56,11 +56,10 @@ const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 			display: spell.hp == 0 ? 'none': 'block',
 			[side]: `${complete}%`,
 			zIndex: 10,
-			background: color,
 			height: `${size}px`,
 			width: `${size}px`,
 			borderRadius: `${size/2}px`,
-			boxShadow: `0px 0px ${size/4}px ${size/4}px ${color}, 0px 0px ${size/4}px ${size/4}px ${color} inset`
+			boxShadow: `0px 0px ${size/4}px ${size/4}px ${color} inset`
 		}
 		return (
 				<div

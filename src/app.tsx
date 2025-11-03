@@ -113,7 +113,7 @@ export function App() {
 					setPlayer(p => {
 						return {
 							...p,
-							hp: p.hp - 1
+							hp: p.hp - currMove.hp
 						}
 					})
 				}
@@ -365,6 +365,37 @@ export function App() {
 						window.removeEventListener("keyup", handleKeyUp)
 				}
 		}, [p1Disabled, p2Disabled])
+
+		if(player1.hp === 0) return (
+			<div style={{
+				width: '100vw',
+				height: '100vh',
+				display: "flex",
+				flexDirection: "column",
+				justifyContent: 'center',
+				alignItems: 'center'
+			}}
+			>
+				<h1> Player 2 wins!! </h1>
+				<p> Reload the page to play again </p>
+			</div>
+		)
+
+		if(player2.hp === 0) return (
+			<div style={{
+				width: '100vw',
+				height: '100vh',
+				display: "flex",
+				flexDirection: "column",
+				justifyContent: 'center',
+				alignItems: 'center'
+			}}
+			>
+				<h1> Player 1 wins!! </h1>
+				<p> Reload the page to play again </p>
+			</div>
+		)
+		
 
 		return (
 				<div style={{

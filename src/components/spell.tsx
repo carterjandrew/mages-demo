@@ -1,11 +1,12 @@
+import type { CSSProperties } from "preact"
 import { useEffect, useMemo, useRef, useState } from "preact/hooks"
-
 
 export type SpellType = {
 		hp: number,
 		playerOne: boolean,
 		timeCast: number
 		airTime: number
+		id: number
 }
 type SpellProps = React.HTMLProps<HTMLDivElement> & {
 		spell: SpellType
@@ -13,9 +14,9 @@ type SpellProps = React.HTMLProps<HTMLDivElement> & {
 
 const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 		const [deltaTime, setDeltaTime] = useState(0)
-		const complete = useMemo(() => Math.floor(1000 * deltaTime / (spell.airTime * 1000) )/10, [deltaTime])
+		const complete = useMemo(() => Math.floor(deltaTime / (10 * spell.airTime) ), [deltaTime])
 		const requestRef = useRef<number>()
-		const color = useMemo(() => {
+		function getColor(){
 				switch(spell.hp) {
 						case 1:
 								return "orange"
@@ -24,12 +25,14 @@ const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 						default:
 								return "orange"
 				}
-		}, [spell])
-		const size = useMemo(() => {
+		}
+		const color = getColor()
+		function getSize(){
 				if(spell.hp == 2) return 100
 				if(spell.hp == 1) return 60
 				return 60
-		}, [spell])
+		}
+		const size = getSize()
 
 		const animate = time => {
 				const dt = time - spell.timeCast
@@ -47,18 +50,21 @@ const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 				requestRef.current = requestAnimationFrame(animate)
 				return cancelAnimation
 		}, [])
+		const side: string = spell.playerOne ? "left": "right"
+		const divStyle: CSSProperties = {
+			position: "absolute",
+			display: spell.hp == 0 ? 'none': 'block',
+			[side]: `${complete}%`,
+			zIndex: 10,
+			background: color,
+			height: `${size}px`,
+			width: `${size}px`,
+			borderRadius: `${size/2}px`,
+			boxShadow: `0px 0px ${size/4}px ${size/4}px ${color}, 0px 0px ${size/4}px ${size/4}px ${color} inset`
+		}
 		return (
 				<div
-						style={{
-								position: "absolute",
-								left: `${complete}%`,
-								zIndex: 10,
-								background: color,
-								height: `${size}px`,
-								width: `${size}px`,
-								borderRadius: `${size/2}px`,
-								boxShadow: `0px 0px ${size/4}px ${size/4}px ${color}, 0px 0px ${size/4}px ${size/4}px ${color} inset`
-						}}
+						style={ divStyle }
 						{...props}
 				/>
 		)

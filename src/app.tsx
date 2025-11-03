@@ -366,7 +366,7 @@ export function App() {
 				}
 		}, [p1Disabled, p2Disabled])
 
-		if(player1.hp === 0) return (
+		if(player1.hp < 0) return (
 			<div style={{
 				width: '100vw',
 				height: '100vh',
@@ -381,7 +381,7 @@ export function App() {
 			</div>
 		)
 
-		if(player2.hp === 0) return (
+		if(player2.hp < 0) return (
 			<div style={{
 				width: '100vw',
 				height: '100vh',

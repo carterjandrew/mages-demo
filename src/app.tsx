@@ -33,8 +33,8 @@ export interface Player {
 		shieldActivated: number
 }
 
-const p1Keys = ["1", "q", "a", "z", "x"]
-const p2Keys = ["-", "p", "l", ",", "m"]
+const p1Keys = ["1", "q", "a", "z", "x", "s"]
+const p2Keys = ["-", "p", "l", ",", "m", "k"]
 
 export function App() {
 		const numSpellsCast = useRef<number>(0)

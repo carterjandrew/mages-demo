@@ -19,20 +19,24 @@ const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 		const complete = useMemo(() => Math.floor(deltaTime / (10 * spell.airTime) ), [deltaTime])
 		const requestRef = useRef<number>()
 		function getColor(){
-				switch(spell.hp) {
+				if(spell.name === "Amplify") return "green"
+				switch(spell.hp % 4) {
 						case 1:
 								return "orange"
 						case 2:
 								return "red"
+						case 3:
+								return "purple"
+						case 4:
+								return "blue"
 						default:
 								return "orange"
 				}
 		}
 		const color = getColor()
+
 		function getSize(){
-				if(spell.hp == 2) return 150
-				if(spell.hp == 1) return 90
-				return 60
+				return (spell.hp * 50) + 50
 		}
 		const size = getSize()
 

@@ -441,14 +441,14 @@ export function App() {
 						padding: "40px",
 				}}>
 						<div style={{display: "flex", flexDirection: "column", minWidth: "20%", height: '100%'}}>
-							<div style={{display: "flex", flexDirection: "row", gap: "5px"}} >
+							<div style={{display: "flex", flexDirection: "row", gap: "5px", maxWidth: "100%", overflowX: "clip"}} >
 							{Array.from({length: player1.mana}).map(() => (
 								<MdElectricBolt style={{
 									color: "blue",
 								}} />
 							))}
 							</div>
-							<div style={{display: "flex", flexDirection: "row", gap: "5px"}} >
+							<div style={{display: "flex", flexDirection: "row", gap: "5px", maxWidth: "100%", overflowX: "clip"}} >
 							{Array.from({length: player1.hp}).map(() => (
 								<FaHeart style={{
 									color: "red",
@@ -487,13 +487,13 @@ export function App() {
 										> {key} ({value.triggerKey}) </Button>
 								))}
 						</div>
-						<div style={{flex: 1, position: "relative", display: "flex", alignItems: "center"}}>
+						<div style={{flex: 1, position: "relative", display: "flex", alignItems: "center", minWidth: "20vw"}}>
 							<div style={{
 								width: "100%",
 								height: "10px",
 								position: "absolute",
 								display: "flex",
-								alignItems: "center"
+								alignItems: "center",
 								}}
 							>
 							{liveMoves1.map(move => (
@@ -509,14 +509,14 @@ export function App() {
 							</div>
 						</div>
 						<div style={{display: "flex", flexDirection: "column", minWidth: "20%"}}>
-							<div style={{display: "flex", flexDirection: "row", gap: "5px", justifyContent: "end"}} >
+							<div style={{display: "flex", flexDirection: "row", gap: "5px", maxWidth: "100%", overflowX: "clip", justifyContent: "end"}} >
 							{Array.from({length: player2.mana}).map(() => (
 								<MdElectricBolt style={{
 									color: "blue",
 								}} />
 							))}
 							</div>
-							<div style={{display: "flex", flexDirection: "row", gap: "5px", justifyContent: "end"}} >
+							<div style={{display: "flex", flexDirection: "row", gap: "5px", maxWidth: "100%", overflowX: "clip", justifyContent: "end"}} >
 							{Array.from({length: player2.hp}).map(() => (
 								<FaHeart style={{
 									color: "red",

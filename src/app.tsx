@@ -12,7 +12,7 @@ type MoveDisabledHandler = (p: Player) => boolean
 export type SpellName = "Reload" | "Fireball" | "BigFireBall" | "Heal" | "Reflect" | "Amplify"
 
 const activeSpells: Array<SpellName> = [
-	"Reload", "Fireball", "BigFireBall", "Amplify", "Heal", "Reflect"
+	"Fireball", "Amplify", "Reflect"
 ]
 
 const fireBallTime = 2
@@ -40,16 +40,33 @@ export function App() {
 		const numSpellsCast = useRef<number>(0)
 		const [player1, setPlayer1] = useState<Player>({
 				hp: 3,
-				mana: 0,
+				mana: 5,
 				shieldActivated: -10000,
 				num: 1
 		})
 		const [player2, setPlayer2] = useState<Player>({
 				hp: 3,
-				mana: 0,
+				mana: 5,
 				shieldActivated: -10000,
 				num: 2
 		})
+		const manaRecoverTime = 2000
+		async function manaRecover(){
+			while(true){
+				await new Promise(r => setTimeout(r, manaRecoverTime))
+				setPlayer1(p => ({
+					...p,
+					mana: p.mana + 1
+				}))
+				setPlayer2(p => ({
+					...p,
+					mana: p.mana + 1
+				}))
+			}
+		}
+		useEffect(() => {
+			manaRecover()
+		}, [])
 		const shieldTimeout = 1000
 		const [p1ShieldActive, setP1ShieldActive] = useState(false)
 		function activateP1Shield(){

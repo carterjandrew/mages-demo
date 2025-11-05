@@ -9,7 +9,11 @@ type MoveHandler = (p: Player) => void
 
 type MoveDisabledHandler = (p: Player) => boolean
 
-type SpellName = "Reload" | "Fireball" | "BigFireBall" | "Heal" | "Reflect"
+export type SpellName = "Reload" | "Fireball" | "BigFireBall" | "Heal" | "Reflect" | "Amplify"
+
+const activeSpells: Array<SpellName> = [
+	"Reload", "Fireball", "BigFireBall", "Amplify", "Heal", "Reflect"
+]
 
 const fireBallTime = 2
 const bigFireBallTime = 3
@@ -82,6 +86,11 @@ export function App() {
 		useEffect(() => {liveMovesRef1.current = liveMoves1}, [liveMoves1])
 		useEffect(() => {liveMovesRef2.current = liveMoves2}, [liveMoves2])
 
+		async function onAmplifyLand(spell: SpellType){
+			await new Promise(r => setTimeout(r, spell.airTime * 1000))
+			const setLiveMoves = spell.playerOne ? setLiveMoves1 : setLiveMoves2
+			setLiveMoves(lm => lm.filter(m => m.id != spell.id))
+		}
 		async function onFireballLand(spell: SpellType){
 			await new Promise(r => setTimeout(r, spell.airTime * 1000))
 			const setLiveMoves = spell.playerOne ? setLiveMoves1 : setLiveMoves2
@@ -141,6 +150,7 @@ export function App() {
 						setPlayer({...p, mana: p.mana - 1})
 						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
 						const fireball: SpellType = {
+								name: "BigFireBall",
 								hp: 1,
 								playerOne: p.num == 1,
 								airTime: fireBallTime,
@@ -157,6 +167,7 @@ export function App() {
 						setPlayer({...p, mana: p.mana - 2})
 						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
 						const fireball: SpellType = {
+								name: "BigFireBall",
 								hp: 2,
 								playerOne: p.num == 1,
 								airTime: bigFireBallTime,
@@ -167,6 +178,23 @@ export function App() {
 								return [...lm, fireball]
 						})
 						onFireballLand(fireball)
+				},
+				"Amplify": (p) => {
+						const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+						setPlayer({...p, mana: p.mana - 1})
+						const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+						const spell: SpellType = {
+								name: "Amplify",
+								hp: 1,
+								playerOne: p.num == 1,
+								airTime: bigFireBallTime,
+								timeCast: performance.now(),
+								id: numSpellsCast.current++
+						}
+						setLiveMoves(lm => {
+								return [...lm, spell]
+						})
+						onAmplifyLand(spell)
 				}
 		}
 
@@ -186,20 +214,24 @@ export function App() {
 				"BigFireBall": (p) => {
 						return p.mana > 1
 				},
+				"Amplify": (p) => {
+					return p.mana > 0
+				}
 		}
 
 		const spellCooldowns: Record<SpellName, number> = {
-				"Heal": 			10,
-				"BigFireBall": 		40,
+				"Heal":					10,
+				"BigFireBall": 	40,
 				"Fireball": 		20,
 				"Reflect": 			30,
 				"Reload": 			10,
+				"Amplify": 			30,
 		}
 
 		const p1Moves = useRef<Record<SpellName, Move> | null>(null)
 		if (!p1Moves.current) {
 		  p1Moves.current = {} as Record<SpellName, Move>
-		  ;(Object.keys(moveDisabledHandlers) as SpellName[]).forEach((key, index) => {
+		  ;(activeSpells).forEach((key, index) => {
 		    p1Moves.current![key] = {
 		      triggerKey: p1Keys[index],
 		      cooldown: spellCooldowns[key],
@@ -214,27 +246,25 @@ export function App() {
 				keyToSpell1[value.triggerKey] = key as SpellName
 		})
 
-		const [p1Recharge, setP1Recharge] = useState<Record<SpellName, number>>({
-				"Reload": 0,
-				"Heal": 0,
-				"Reflect": 0,
-				"Fireball": 0,
-				"BigFireBall": 0,
-		})
+		const [p1Recharge, setP1Recharge] = useState<Record<SpellName, number>>({})
+		useEffect(() => {
+			const tempRecharge: Record<SpellName, number> = {}
+			activeSpells.forEach(name => tempRecharge[name] = 0)
+			setP1Recharge(tempRecharge)
+		}, [])
 		
-		const [p1Disabled, setP1Disabled] = useState<Record<SpellName, boolean>>({
-				"Reload": true,
-				"Heal": true,
-				"Reflect": true,
-				"Fireball": true,
-				"BigFireBall": true,
-		})
+		const [p1Disabled, setP1Disabled] = useState<Record<SpellName, boolean>>({})
+		useEffect(() => {
+			const tempDisabled: Record<SpellName, boolean> = {}
+			activeSpells.forEach(name => tempDisabled[name] = true)
+			setP1Disabled(tempDisabled)
+		}, [])
 
 
 		const p2Moves = useRef<Record<SpellName, Move> | null>(null)
 		if (!p2Moves.current) {
 		  p2Moves.current = {} as Record<SpellName, Move>
-		  ;(Object.keys(moveDisabledHandlers) as SpellName[]).forEach((key, index) => {
+		  (activeSpells).forEach((key, index) => {
 		    p2Moves.current![key] = {
 		      triggerKey: p2Keys[index],
 		      cooldown: spellCooldowns[key],
@@ -250,21 +280,19 @@ export function App() {
 				keyToSpell2[value.triggerKey] = key as SpellName
 		})
 
-		const [p2Recharge, setP2Recharge] = useState<Record<SpellName, number>>({
-				"Reload": 0,
-				"Heal": 0,
-				"Reflect": 0,
-				"Fireball": 0,
-				"BigFireBall": 0,
-		})
+		const [p2Recharge, setP2Recharge] = useState<Record<SpellName, number>>({})
+		useEffect(() => {
+			const tempRecharge: Record<SpellName, number> = {}
+			activeSpells.forEach(name => tempRecharge[name] = 0)
+			setP2Recharge(tempRecharge)
+		}, [])
 		
-		const [p2Disabled, setP2Disabled] = useState<Record<SpellName, boolean>>({
-				"Reload": true,
-				"Heal": true,
-				"Reflect": true,
-				"Fireball": true,
-				"BigFireBall": true,
-		})
+		const [p2Disabled, setP2Disabled] = useState<Record<SpellName, boolean>>({})
+		useEffect(() => {
+			const tempDisabled: Record<SpellName, boolean> = {}
+			activeSpells.forEach(name => tempDisabled[name] = true)
+			setP2Disabled(tempDisabled)
+		}, [])
 
 		function objectMap(object, mapFn) {
 		  return Object.keys(object).reduce(function(result, key) {
@@ -286,6 +314,7 @@ export function App() {
 		function getProgress(time: number, spell: SpellType): number {
 			return (time - spell.timeCast) / (1000 * spell.airTime)
 		}
+
 		function handleSpellCollisions(){
 			const time = performance.now()
 			liveMovesRef1.current.forEach((s1, i1) => {
@@ -297,10 +326,16 @@ export function App() {
 					if(Math.abs(p1 - p2) > 0.1) return;
 					const newCollisions = collisions ? [s2.id, ...collisions] : [s2.id]
 					spellCollisions.current[s1.id] = newCollisions
+					let hpChange1 = -1
+					let hpChange2 = -1
+					if(s1.name === "Amplify" && s1.hp > 0) hpChange2 = 1;
+					if(s2.name === "Amplify" && s2.hp > 0) hpChange1 = 1;
+					console.log("Hp Change 1", hpChange1)
+					console.log("Hp Change 2", hpChange2)
 					const lm1 = liveMoves1.slice()
 					const lm2 = liveMoves2.slice()
-					s1.hp -= 1;
-					s2.hp -= 1;
+					s1.hp += hpChange1;
+					s2.hp += hpChange2;
 					lm1[i1] = s1;
 					lm2[i2] = s2;
 					setLiveMoves1(lm1)
@@ -311,26 +346,26 @@ export function App() {
 
 		const animate = time => {
 			handleSpellCollisions()
-			setP1Recharge(
+			setP1Recharge( p1Recharge => 
 					objectMap(p1Recharge, (k, v) => {
 							const move = p1Moves.current[k as SpellName]
 							return (time - move.lastTriggered) / move.cooldown
 					})
 			)
-			setP2Recharge(
+			setP2Recharge( p2Recharge =>
 					objectMap(p2Recharge, (k, v) => {
 							const move = p2Moves.current[k as SpellName]
 							return (time - move.lastTriggered) / move.cooldown
 					})
 			)
-			setP1Disabled(
+			setP1Disabled( p1Disabled =>
 					objectMap(p1Disabled, (k, v) => {
 							const move = p1Moves.current[k as SpellName]
 							const recharge = (time - move.lastTriggered) / move.cooldown
 							return recharge < 97 || !move.disabledHandler(player1Ref.current)
 					})
 			)
-			setP2Disabled(
+			setP2Disabled( p2Disabled =>
 					objectMap(p2Disabled, (k, v) => {
 							const move = p2Moves.current[k as SpellName]
 							const recharge = (time - move.lastTriggered) / move.cooldown

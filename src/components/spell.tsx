@@ -1,7 +1,9 @@
 import type { CSSProperties } from "preact"
 import { useEffect, useMemo, useRef, useState } from "preact/hooks"
+import type { SpellName } from "../app"
 
 export type SpellType = {
+		name: SpellName,
 		hp: number,
 		playerOne: boolean,
 		timeCast: number

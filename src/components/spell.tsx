@@ -40,7 +40,8 @@ const Spell: React.FC<SpellProps> = ({spell, ...props}) => {
 		}
 		const size = getSize()
 
-		const animate = time => {
+		function animate(time: number){
+			console.log(time)
 				const dt = time - spell.timeCast
 				setDeltaTime(dt)
 				requestRef.current = requestAnimationFrame(animate)

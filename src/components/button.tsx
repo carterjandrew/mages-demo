@@ -1,10 +1,35 @@
 import type React from "preact/compat";
+import { useEffect, useRef, useState } from "preact/compat";
 
 type ButtonProps = React.HTMLProps<HTMLButtonElement> & {
-		recharged: number
+	lastTriggered: number,
+	cooldown: number
 }
 
-const Button: React.FC<ButtonProps> = ({recharged, children, ...props}) => {
+const Button: React.FC<ButtonProps> = ({lastTriggered, cooldown, children, ...props}) => {
+		const [cooldownProgress, setCooldownProgress] = useState(0)
+		const requestRef = useRef<number>(null)
+
+		function min(n1: number, n2: number): number {
+			return n1 < n2 ? n1 : n2
+		}
+
+		function animate(time: number){
+			const deltaTime = time - lastTriggered
+			const progress = deltaTime / (cooldown * 1000)
+			setCooldownProgress(min(progress, 1))
+			requestRef.current = requestAnimationFrame(animate)
+		}
+
+		useEffect(() => {
+			function cancel(){
+				if(requestRef.current) cancelAnimationFrame(requestRef.current)
+			}
+			cancel()
+			requestRef.current = requestAnimationFrame(animate)
+			return cancel
+		}, [lastTriggered])
+
 		return (
 				<button
 						{...props}
@@ -20,10 +45,10 @@ const Button: React.FC<ButtonProps> = ({recharged, children, ...props}) => {
 				>
 						<div
 								style={{
-										background: "gray",
+										background: "grey",
 										opacity: "50%",
 										height: "40px",
-										width: `${recharged > 100 ? 100 : recharged}%`
+										width: `${cooldownProgress * 100}%`
 								}}
 						/>
 						<div

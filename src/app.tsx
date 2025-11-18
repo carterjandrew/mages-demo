@@ -4,6 +4,7 @@ import Button from './components/button'
 import { FaHeart } from 'react-icons/fa'
 import { MdElectricBolt } from 'react-icons/md'
 import Spell, { type SpellType } from './components/spell'
+import Buildup from './components/buildup'
 
 type MoveHandler = (p: Player) => void
 
@@ -400,6 +401,44 @@ export function App() {
 			})
 		}, [player2])
 
+		function InitKeyDowns(playerOne: boolean){
+			const keyMap: Record<SpellName, boolean> = {}
+			activeSpells.forEach((k) => {
+				keyMap[k] = false
+			})
+			return keyMap
+		}
+
+		const [p1DownKeys, setP1DownKeys] = useState(InitKeyDowns(true))
+		const [p2DownKeys, setP2DownKeys] = useState(InitKeyDowns(false))
+
+		useEffect(() => {
+			function handleKeyDown(event: KeyboardEvent){
+				if(event.repeat) return;
+				console.log("Key", event.key)
+				const p1Key = keyToSpell1[event.key]
+				const p2Key = keyToSpell2[event.key]
+				if(!p1Keys && !p2Keys) return;
+				const key = p1Key ?? p2Key
+				// Set that the key is currently down
+				const setDownkeys = p1Key ? setP1DownKeys : setP2DownKeys
+				setDownkeys(keys => ({
+					...keys,
+					[key]: true
+				}))
+				// Set when the key was pressed down
+				const setTriggered = p1Key ? setP1Triggered : setP2Triggered
+				setTriggered(triggered => ({
+					...triggered,
+					[key]: performance.now()
+				}))
+			}
+			window.addEventListener("keydown", handleKeyDown)
+			return () => {
+					window.removeEventListener("keydown", handleKeyDown)
+			}
+		}, [])
+
 		useEffect(() => {
 				const handleKeyUp = (event: KeyboardEvent) => {
 						const p1Key = keyToSpell1[event.key]
@@ -581,6 +620,20 @@ export function App() {
 										}}
 									> B </h1>
 								</div>
+								{Object.entries(p2Moves.current).map(([key, value], _) => {
+									const k = key as SpellName
+									return (
+										<Buildup
+											key={key}
+											disabled={p2Disabled[k]}
+											lastTriggered={p2Triggered[k]}
+											buildup={1}
+											buttonDown={p2DownKeys[k]}
+											glowColor='red'
+											glowRadiusFactor={10}
+										> {key} ({value.triggerKey}) </Buildup>
+								)
+								})}
 								{Object.entries(p2Moves.current).map(([key, value], _) => {
 									const k = key as SpellName
 									return (

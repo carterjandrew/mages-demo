@@ -441,27 +441,21 @@ export function App() {
 
 		useEffect(() => {
 				const handleKeyUp = (event: KeyboardEvent) => {
-						const p1Key = keyToSpell1[event.key]
-						const p2Key = keyToSpell2[event.key]
-						if(p1Key){
-								if(p1Disabled[p1Key] || p1Cooldown[p1Key]) return;
-								const move = p1Moves.current[p1Key]
-								move.handler(player1)
-								setP1Triggered(t => ({
-									...t,
-									[p1Key]: performance.now()
-								}))
-								cooldownSpell(true, p1Key)
-						}
-						if(p2Key){
-								if(p2Disabled[p2Key] || p2Cooldown[p2Key]) return;
-								p2Moves.current[p2Key].handler(player2)
-								setP2Triggered(t => ({
-									...t,
-									[p2Key]: performance.now()
-								}))
-								cooldownSpell(false, p2Key)
-						}
+					if(event.repeat) return;
+					const p1Key = keyToSpell1[event.key]
+					const p2Key = keyToSpell2[event.key]
+					if(!p1Key && !p2Key) return;
+					const moves = p1Key ? p1Moves : p2Moves
+					const key = p1Key ?? p2Key
+					const move = moves.current[key]
+					const player = p1Key ? player1 : player2
+					move.handler(player)
+					cooldownSpell(!!p1Key, key)
+					const setDownkeys = p1Key ? setP1DownKeys : setP2DownKeys
+					setDownkeys(k => ({
+						...k, 
+						[key]: false
+					}))
 				}
 				window.addEventListener("keyup", handleKeyUp)
 				return () => {

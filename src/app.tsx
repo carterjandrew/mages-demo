@@ -164,9 +164,29 @@ export function App() {
 		})
 	}
 
+	const p1BuildupRef = useRef(p1Buildups)
+	useEffect(() => {
+		p1BuildupRef.current = p1Buildups
+	}, [p1Buildups])
+
+	const p2BuildupRef = useRef(p2Buildups)
+	useEffect(() => {
+		p2BuildupRef.current = p2Buildups
+	}, [p2Buildups])
+
+	const p1TriggeredRef = useRef(p1Triggered)
+	useEffect(() => {
+		p1TriggeredRef.current = p1Triggered
+	}, [p1Triggered])
+
+	const p2TriggeredRef = useRef(p2Triggered)
+	useEffect(() => {
+		p2TriggeredRef.current = p2Triggered
+	}, [p2Triggered])
+
 	function getBuildup(name: SpellName, player: Player): number {
-		const buildup = (player.num == 1 ? p1Buildups : p2Buildups)[name]
-		const triggered = (player1.num === 1 ? p1Triggered : p2Triggered)[name]
+		const buildup = (player.num == 1 ? p1BuildupRef : p2BuildupRef).current[name]
+		const triggered = (player1.num === 1 ? p1TriggeredRef : p2TriggeredRef).current[name]
 		return (performance.now() - triggered) / (buildup * 1000)
 	}
 

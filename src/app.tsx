@@ -118,10 +118,44 @@ export function App() {
 	useEffect(() => {liveMovesRef1.current = liveMoves1}, [liveMoves1])
 	useEffect(() => {liveMovesRef2.current = liveMoves2}, [liveMoves2])
 
+	const [p1ShieldBroken, setP1ShieldBroken] = useState(false)
+	const p1ShieldBrokenRef = useRef(p1ShieldBroken)
+	useEffect(() => {
+		if(!p1ShieldBroken){
+			setP1ShieldHP(0)
+		}
+		p1ShieldBrokenRef.current = p1ShieldBroken
+	}, [p1ShieldBroken])
+
+	const [p2ShieldBroken, setP2ShieldBroken] = useState(false)
+	const p2ShieldBrokenRef = useRef(p2ShieldBroken)
+	useEffect(() => {
+		if(!p2ShieldBroken){
+			setP2ShieldHP(0)
+		}
+		p2ShieldBrokenRef.current = p2ShieldBroken
+	}, [p2ShieldBroken])
+
 	async function onAmplifyLand(spell: SpellType){
 		await new Promise(r => setTimeout(r, spell.airTime * 1000))
 		const setLiveMoves = spell.playerOne ? setLiveMoves1 : setLiveMoves2
-		setLiveMoves(lm => lm.filter(m => m.id != spell.id))
+		setLiveMoves(lm => {
+			const retVal = lm.filter(m => m.id != spell.id)
+			const currMove = lm.find(m => m.id === spell.id)!
+			if(currMove.hp === 0) return retVal;
+			const shieldActive = (currMove.playerOne ? p2ShieldActiveRef : p1ShieldActiveRef).current
+			if(shieldActive){
+				const setShieldBroken = !spell.playerOne ? setP1ShieldBroken : setP2ShieldBroken
+				const shieldRepairTime = spell.hp * 3
+				async function repairShield(){
+					await new Promise(r => setTimeout(r, shieldRepairTime * 1000))
+					setShieldBroken(false)
+				}
+				setShieldBroken(true)
+				repairShield()
+			}
+			return retVal
+		})
 	}
 	async function onFireballLand(spell: SpellType){
 		await new Promise(r => setTimeout(r, spell.airTime * 1000))
@@ -202,6 +236,8 @@ export function App() {
 			"Reflect": (p) => {
 				const buildup = getBuildup("Reflect", p)
 				if(buildup < 1) return;
+				const shieldBroken = (p.num === 1 ? p1ShieldBrokenRef : p2ShieldBrokenRef).current
+				if(shieldBroken) return
 				activateShield(p.num === 1, Math.round(buildup))
 				const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
 				setPlayer(p => ({...p, mana: p.mana - 1}))
@@ -554,13 +590,13 @@ useEffect(() => {
 								position: "relative"
 							}}>
 								<div style={{
-									display: p1ShieldHP ? "block": "none",
+									display: p1ShieldHP || p1ShieldBroken ? "block": "none",
 									position: "absolute",
 									width: "35vh",
 									height: "35vh",
 									borderRadius: "18vh",
 									zIndex: -1,
-									boxShadow: `0px 0px 3vh 1vh lightblue inset`
+									boxShadow: `0px 0px 3vh 1vh ${p1ShieldBroken ? "red" : "lightblue"} inset`
 								}} />
 								<h1
 									style={{
@@ -624,13 +660,13 @@ useEffect(() => {
 								position: "relative"
 							}}>
 								<div style={{
-									display: p2ShieldHP ? "block": "none",
+									display: p2ShieldHP || p2ShieldBroken ? "block": "none",
 									position: "absolute",
 									width: "35vh",
 									height: "35vh",
 									borderRadius: "18vh",
 									zIndex: -1,
-									boxShadow: `0px 0px 3vh 1vh lightblue inset`
+									boxShadow: `0px 0px 3vh 1vh ${p2ShieldBroken ? "red" : "lightblue"} inset`
 								}} />
 								<h1
 									style={{

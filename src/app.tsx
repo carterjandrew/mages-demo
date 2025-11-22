@@ -38,9 +38,9 @@ const spellBuildups: Record<SpellName, number> = {
 		"Heal":					1,
 		"BigFireBall": 	4,
 		"Fireball": 		2,
-		"Reflect": 			3,
+		"Reflect": 			.5,
 		"Reload": 			1,
-		"Amplify": 			3,
+		"Amplify": 			1,
 }
 
 

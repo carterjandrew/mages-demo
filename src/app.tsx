@@ -87,32 +87,28 @@ export function App() {
 		manaRecover()
 	}, [])
 	const shieldTimeout = 1000
-	const [p1ShieldActive, setP1ShieldActive] = useState(false)
-	function activateP1Shield(){
-		setP1ShieldActive(true)
+	// States for reaction
+	const [p1ShieldHP, setP1ShieldHP] = useState(0)
+	const [p2ShieldHP, setP2ShieldHP] = useState(0)
+	const p1ShieldActiveRef = useRef(p1ShieldHP)
+	// Mirror shield active refs
+	useEffect(() => {
+		p1ShieldActiveRef.current = p1ShieldHP
+	}, [p1ShieldHP])
+	const p2ShieldActiveRef = useRef(p2ShieldHP)
+	useEffect(() => {
+		p2ShieldActiveRef.current = p2ShieldHP
+	}, [p2ShieldHP])
+	// Function for activating shield
+	function activateShield(isP1: boolean, hp: number){
+		const setActive = isP1 ? setP1ShieldHP : setP2ShieldHP
 		async function disableShield(){
 			await new Promise(r => setTimeout(r, shieldTimeout))
-			setP1ShieldActive(false)
+			setActive(0)
 		}
+		setActive(hp)
 		disableShield()
 	}
-	const p1ShieldActiveRef = useRef(p1ShieldActive)
-	useEffect(() => {
-		p1ShieldActiveRef.current = p1ShieldActive
-	}, [p1ShieldActive])
-	const [p2ShieldActive, setP2ShieldActive] = useState(false)
-	function activateP2Shield(){
-		setP2ShieldActive(true)
-		async function disableShield(){
-			await new Promise(r => setTimeout(r, shieldTimeout))
-			setP2ShieldActive(false)
-		}
-		disableShield()
-	}
-	const p2ShieldActiveRef = useRef(p2ShieldActive)
-	useEffect(() => {
-		p2ShieldActiveRef.current = p2ShieldActive
-	}, [p2ShieldActive])
 	const [liveMoves1, setLiveMoves1] = useState<Array<SpellType>>([])
 	const [liveMoves2, setLiveMoves2] = useState<Array<SpellType>>([])
 
@@ -136,7 +132,11 @@ export function App() {
 			const currMove = a.find(m => m.id === spell.id)!
 			if(currMove.hp === 0) return retVal;
 			const shieldActive = (currMove.playerOne ? p2ShieldActiveRef : p1ShieldActiveRef).current
-			if(shieldActive){
+			// If the shield is active, we can:
+			// Check if there is enough hp to reflect
+			// Break if we cannot reflect
+			// Reflect the shot if we do
+			if(shieldActive >= currMove.hp){
 				const setHitMoves = spell.playerOne ? setLiveMoves2 : setLiveMoves1
 				const newSpell: SpellType = {
 					name: spell.name,
@@ -151,6 +151,7 @@ export function App() {
 				])
 				onFireballLand(newSpell)
 			} else {
+				if(shieldActive) currMove.hp -= shieldActive;
 				const setPlayer = currMove.playerOne ? setPlayer2 : setPlayer1
 				setPlayer(p => {
 					return {
@@ -185,8 +186,8 @@ export function App() {
 
 	function getBuildup(name: SpellName, player: Player): number {
 		const buildup = (player.num == 1 ? p1BuildupRef : p2BuildupRef).current[name]
-		const triggered = (player1.num === 1 ? p1TriggeredRef : p2TriggeredRef).current[name]
-		return (performance.now() - triggered) / (buildup * 1000)
+		const triggered = (player.num == 1 ? p1TriggeredRef : p2TriggeredRef).current
+		return (performance.now() - triggered[name]) / (buildup * 1000)
 	}
 
 	const moveHanders: Record<SpellName, MoveHandler> = {
@@ -201,30 +202,28 @@ export function App() {
 			"Reflect": (p) => {
 				const buildup = getBuildup("Reflect", p)
 				if(buildup < 1) return;
-				const activateShield = p.num == 1 ? activateP1Shield: activateP2Shield
-				activateShield()
+				activateShield(p.num === 1, Math.round(buildup))
 				const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
 				setPlayer(p => ({...p, mana: p.mana - 1}))
 			},
 			"Fireball": (p) => {
 				const buildup = getBuildup("Fireball", p)
 				if(buildup < 1) return;
-				console.log("Hello??")
-					const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
-					setPlayer(p => ({...p, mana: p.mana - 1}))
-					const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
-					const fireball: SpellType = {
-							name: "BigFireBall",
-							hp: Math.round(buildup),
-							playerOne: p.num == 1,
-							airTime: fireBallTime,
-							timeCast: performance.now(),
-							id: numSpellsCast.current++
-					}
-					setLiveMoves(lm => {
-							return [...lm, fireball]
-					})
-					onFireballLand(fireball)
+				const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+				setPlayer(p => ({...p, mana: p.mana - 1}))
+				const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+				const fireball: SpellType = {
+						name: "BigFireBall",
+						hp: Math.round(buildup),
+						playerOne: p.num == 1,
+						airTime: fireBallTime,
+						timeCast: performance.now(),
+						id: numSpellsCast.current++
+				}
+				setLiveMoves(lm => {
+						return [...lm, fireball]
+				})
+				onFireballLand(fireball)
 			},
 			"BigFireBall": (p) => {
 					const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
@@ -244,22 +243,24 @@ export function App() {
 					onFireballLand(fireball)
 			},
 			"Amplify": (p) => {
-					const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
-					setPlayer({...p, mana: p.mana - 1})
-					const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
-					const spell: SpellType = {
-							name: "Amplify",
-							hp: 1,
-							playerOne: p.num == 1,
-							airTime: bigFireBallTime,
-							timeCast: performance.now(),
-							id: numSpellsCast.current++
-					}
-					setLiveMoves(lm => {
-							return [...lm, spell]
-					})
-					onAmplifyLand(spell)
-			}
+				const buildup = getBuildup("Amplify", p)
+				if(buildup < 1) return;
+				const setPlayer = p.num == 1 ? setPlayer1 : setPlayer2
+				setPlayer({...p, mana: p.mana - 1})
+				const setLiveMoves = p.num == 1 ? setLiveMoves1 : setLiveMoves2
+				const spell: SpellType = {
+						name: "Amplify",
+						hp: Math.round(buildup),
+						playerOne: p.num == 1,
+						airTime: bigFireBallTime,
+						timeCast: performance.now(),
+						id: numSpellsCast.current++
+				}
+				setLiveMoves(lm => {
+						return [...lm, spell]
+				})
+				onAmplifyLand(spell)
+		}
 	}
 
 	const moveDisabledHandlers: Record<SpellName, MoveDisabledHandler> = {
@@ -473,11 +474,13 @@ useEffect(() => {
 	useEffect(() => {
 			const handleKeyUp = (event: KeyboardEvent) => {
 				if(event.repeat) return;
+				// Get the triggered key, if a key was triggered
 				const p1Key = keyToSpell1[event.key]
 				const p2Key = keyToSpell2[event.key]
 				if(!p1Key && !p2Key) return;
-				const moves = p1Key ? p1Moves : p2Moves
 				const key = p1Key ?? p2Key
+				// Get the object needed for manipulaiton
+				const moves = p1Key ? p1Moves : p2Moves
 				const move = moves.current[key]
 				const player = p1Key ? player1 : player2
 				// Check we can trigger the spell
@@ -551,7 +554,7 @@ useEffect(() => {
 								position: "relative"
 							}}>
 								<div style={{
-									display: p1ShieldActive ? "block": "none",
+									display: p1ShieldHP ? "block": "none",
 									position: "absolute",
 									width: "35vh",
 									height: "35vh",
@@ -621,7 +624,7 @@ useEffect(() => {
 								position: "relative"
 							}}>
 								<div style={{
-									display: p2ShieldActive ? "block": "none",
+									display: p2ShieldHP ? "block": "none",
 									position: "absolute",
 									width: "35vh",
 									height: "35vh",

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import './app.css'
 import { FaHeart } from 'react-icons/fa'
-import { MdElectricBolt } from 'react-icons/md'
 import Spell, { type SpellType } from './components/spell'
 import Buildup from './components/buildup'
 
@@ -433,7 +432,7 @@ useEffect(() => {
 		})
 	}, [player2])
 
-	function InitKeyDowns(playerOne: boolean){
+	function InitKeyDowns(){
 		const keyMap: Record<SpellName, boolean> = {}
 		activeSpells.forEach((k) => {
 			keyMap[k] = false
@@ -441,8 +440,8 @@ useEffect(() => {
 		return keyMap
 	}
 
-	const [p1DownKeys, setP1DownKeys] = useState(InitKeyDowns(true))
-	const [p2DownKeys, setP2DownKeys] = useState(InitKeyDowns(false))
+	const [p1DownKeys, setP1DownKeys] = useState(InitKeyDowns())
+	const [p2DownKeys, setP2DownKeys] = useState(InitKeyDowns())
 
 	useEffect(() => {
 		function handleKeyDown(event: KeyboardEvent){

@@ -434,7 +434,7 @@ useEffect(() => {
 	}, [player2])
 
 	function InitKeyDowns(){
-		const keyMap: Record<SpellName, boolean> = {}
+		const keyMap = {} as Record<SpellName, boolean> 
 		activeSpells.forEach((k) => {
 			keyMap[k] = false
 		})
